@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+python-dotenv
+qdrant-client
+sentence-transformers
+google-generativeai
+langchain
+pypdf
+python-multipart
