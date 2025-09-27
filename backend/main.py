@@ -32,7 +32,7 @@ qdrant_client = QdrantClient(url=qdrant_url, api_key=qdrant_api_key)
 # Configure Google Gemini
 google_api_key = os.getenv("GOOGLE_API_KEY")
 genai.configure(api_key=google_api_key)
-llm = genai.GenerativeModel('gemini-1.5-flash')
+llm = genai.GenerativeModel('gemini-2.5-pro')
 
 # Define collection name for Qdrant
 COLLECTION_NAME = "my_rag_collection"
