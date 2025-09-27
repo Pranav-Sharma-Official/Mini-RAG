@@ -68,17 +68,18 @@ def setup_qdrant_collection():
     try:
         qdrant_client.get_collection(collection_name=COLLECTION_NAME)
     except Exception:
+        # Create the collection with the hardcoded vector size
         qdrant_client.create_collection(
             collection_name=COLLECTION_NAME,
             vectors_config=models.VectorParams(
-                size=get_embedding_model().get_sentence_embedding_dimension(),
+                size=384,  # DEFINITIVE FIX: Hardcoded dimension for 'all-MiniLM-L6-v2'
                 distance=models.Distance.COSINE
             )
         )
 
-# Initialize the collection on startup (Note: this will trigger the embedding model load once)
 @app.on_event("startup")
 def startup_event():
+    """This runs when the app starts up. It will now NOT load any models."""
     setup_qdrant_collection()
 
 # --- API Endpoints ---
@@ -100,8 +101,7 @@ async def upload_and_process_pdf(file: UploadFile = File(...)):
         chunks = text_splitter.split_documents(documents)
         
         points = []
-        # Load the model once before the loop
-        model = get_embedding_model()
+        model = get_embedding_model() # Model is loaded here, on first API call
         for i, chunk in enumerate(chunks):
             embedding = model.encode(chunk.page_content).tolist()
             points.append(models.PointStruct(
@@ -113,7 +113,7 @@ async def upload_and_process_pdf(file: UploadFile = File(...)):
         qdrant_client.recreate_collection(
             collection_name=COLLECTION_NAME,
             vectors_config=models.VectorParams(
-                size=model.get_sentence_embedding_dimension(),
+                size=384, # Use hardcoded dimension here as well
                 distance=models.Distance.COSINE
             )
         )
@@ -128,10 +128,8 @@ async def upload_and_process_pdf(file: UploadFile = File(...)):
 @app.post("/api/query/")
 async def query_rag(query: str = Form(...)):
     try:
-        # 1. Embed query (loads model if not already loaded)
-        query_embedding = get_embedding_model().encode(query).tolist()
+        query_embedding = get_embedding_model().encode(query).tolist() # Model loaded on first call
 
-        # 2. Retrieve documents
         retrieved_hits = qdrant_client.search(
             collection_name=COLLECTION_NAME,
             query_vector=query_embedding,
@@ -139,8 +137,7 @@ async def query_rag(query: str = Form(...)):
         )
         retrieved_docs = [hit.payload['text'] for hit in retrieved_hits]
 
-        # 3. Rerank documents (loads model if not already loaded)
-        reranker = get_reranker_model()
+        reranker = get_reranker_model() # Reranker model loaded on first call
         rerank_pairs = [[query, doc] for doc in retrieved_docs]
         rerank_scores = reranker.predict(rerank_pairs)
         
@@ -149,7 +146,6 @@ async def query_rag(query: str = Form(...)):
         final_context_docs = [doc for doc, score in reranked_docs_with_scores[:3]]
         context_str = "\n\n".join(final_context_docs)
 
-        # 4. Generate answer
         prompt = f"""
         You are a helpful AI assistant. Answer the user's question based *only* on the following context.
         If the answer is not available in the context, say "I cannot answer this question based on the provided document."
