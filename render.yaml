@@ -12,8 +12,9 @@ services:
     envVars:
       - fromGroup: mini-rag-secrets # Pulls secrets from the Environment Group
 
-  # A Static Site for the HTML/JS Frontend
+  # A Web Service for the HTML/JS Frontend
   - name: mini-rag-frontend
-    type: static_site
+    type: web # WORKAROUND: Changed from static_site to web
+    env: python # We use the python environment to run a simple server
     rootDir: frontend
-    # No build command is needed for a simple HTML site
+    startCommand: "python3 -m http.server $PORT" # Command to serve static files
