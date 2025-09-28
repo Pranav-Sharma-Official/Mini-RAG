@@ -1,0 +1,20 @@
+# render.yaml
+# This file defines the services for your Mini-RAG application
+
+services:
+  # A Web Service for the Python Backend
+  - name: mini-rag-backend
+    type: web
+    env: python
+    rootDir: backend
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - fromGroup: mini-rag-secrets # Pulls secrets from the Environment Group
+
+  # A Web Service for the HTML/JS Frontend
+  - name: mini-rag-frontend
+    type: web # WORKAROUND: Changed from static_site to web
+    env: python # We use the python environment to run a simple server
+    rootDir: frontend
+    startCommand: "python3 -m http.server $PORT" # Command to serve static files
