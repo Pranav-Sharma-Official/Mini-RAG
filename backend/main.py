@@ -24,7 +24,7 @@ qdrant_client = QdrantClient(url=qdrant_url, api_key=qdrant_api_key)
 google_api_key = os.getenv("GOOGLE_API_KEY")
 genai.configure(api_key=google_api_key)
 # NOTE: Use a model name you have verified is available with your API key
-llm = genai.GenerativeModel('gemini-pro')
+llm = genai.GenerativeModel('gemini-2.5-pro')
 
 # Define collection name for Qdrant
 COLLECTION_NAME = "my_rag_collection"
@@ -73,7 +73,7 @@ def setup_qdrant_collection():
         qdrant_client.create_collection(
             collection_name=COLLECTION_NAME,
             vectors_config=models.VectorParams(
-                size=384,  # FIX: Hardcoded dimension for 'all-MiniLM-L6-v2' to prevent OOM errors
+                size=384,  # Hardcoded dimension for 'all-MiniLM-L6-v2'
                 distance=models.Distance.COSINE
             )
         )
@@ -84,7 +84,7 @@ def startup_event():
     setup_qdrant_collection()
 
 # --- API Endpoints ---
-@app.post("/api/upload-and-process/")
+@app.post("/upload-and-process/")
 async def upload_and_process_pdf(file: UploadFile = File(...)):
     if not file.filename.endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are allowed.")
@@ -114,7 +114,7 @@ async def upload_and_process_pdf(file: UploadFile = File(...)):
         qdrant_client.recreate_collection(
             collection_name=COLLECTION_NAME,
             vectors_config=models.VectorParams(
-                size=384, # FIX: Use hardcoded dimension here as well
+                size=384, # Use hardcoded dimension here as well
                 distance=models.Distance.COSINE
             )
         )
@@ -126,7 +126,7 @@ async def upload_and_process_pdf(file: UploadFile = File(...)):
         shutil.rmtree(temp_dir)
 
 
-@app.post("/api/query/")
+@app.post("/query/")
 async def query_rag(query: str = Form(...)):
     try:
         query_embedding = get_embedding_model().encode(query).tolist() # Model loaded on first call
